@@ -1,0 +1,415 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>75 Hard: Data Edition</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: training-log scoreboard. Left = today's five non-negotiables, right = 75-cell board + rules. */
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --ink:#132033; --muted:#5C6B80; --line:#D3DAE4;
+  --accent:#2148D6; --accent-soft:#D9E1FB; --done:#0F8466; --done-soft:#D3EFE6; --miss:#C23B28; --miss-soft:#F8DDD8;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1520; --surface:#16202E; --ink:#E6ECF4; --muted:#93A2B6; --line:#2A3748;
+  --accent:#7D98FF; --accent-soft:#1F2D57; --done:#3DCB9F; --done-soft:#123A30; --miss:#FF7D69; --miss-soft:#47201B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1520; --surface:#16202E; --ink:#E6ECF4; --muted:#93A2B6; --line:#2A3748;
+  --accent:#7D98FF; --accent-soft:#1F2D57; --done:#3DCB9F; --done-soft:#123A30; --miss:#FF7D69; --miss-soft:#47201B; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:16px}
+.brand{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,54px);line-height:.9;letter-spacing:.01em;text-transform:uppercase;margin:0;text-wrap:balance}
+.brand span{color:var(--accent)}
+.tag{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px}
+.stats{display:flex;gap:22px;flex-wrap:wrap}
+.stat b{display:block;font-family:var(--display);font-weight:700;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.stat small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.banner{border:1.5px solid var(--miss);background:var(--miss-soft);padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.banner.win{border-color:var(--done);background:var(--done-soft)}
+.banner p{margin:0;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);padding:22px}
+.dayhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.daynum{font-family:var(--display);font-weight:800;font-size:64px;line-height:.85;font-variant-numeric:tabular-nums}
+.daynum small{font-size:24px;color:var(--muted);font-weight:600}
+.daymeta{text-align:right;font-size:13px;color:var(--muted)}
+.daymeta strong{display:block;color:var(--ink);font-weight:600}
+.nav{display:flex;gap:6px}
+button{font:inherit;cursor:pointer}
+.btn{background:transparent;color:var(--ink);border:1.5px solid var(--ink);padding:6px 12px;font-weight:600;font-size:13px}
+.btn:hover{background:var(--ink);color:var(--surface)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{border-color:var(--miss);color:var(--miss)}
+.btn.danger:hover{background:var(--miss);color:#fff}
+.btn:disabled{opacity:.35;cursor:not-allowed;background:transparent;color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.progress{height:6px;background:var(--line);margin:14px 0 18px}
+.progress i{display:block;height:100%;background:var(--done);transition:width .25s}
+.tasks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.task{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:14px;border:1px solid var(--line);background:var(--bg)}
+.task.on{border-color:var(--done);background:var(--done-soft)}
+.task input{appearance:none;width:24px;height:24px;border:2px solid var(--ink);margin:2px 0 0;cursor:pointer;display:grid;place-items:center;background:var(--surface)}
+.task input:checked{background:var(--done);border-color:var(--done)}
+.task input:checked::after{content:"";width:7px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.task input:disabled{cursor:not-allowed;opacity:.5}
+.tlabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);display:flex;gap:8px;flex-wrap:wrap}
+.tlabel em{font-style:normal;color:var(--muted);font-family:var(--mono);letter-spacing:0;text-transform:none}
+.ttitle{font-weight:600;margin:2px 0 0}
+.tdesc{font-size:13.5px;color:var(--muted);margin:2px 0 0}
+.tdesc code,.ttitle code{font-family:var(--mono);font-size:12.5px;background:var(--surface);padding:0 4px;border:1px solid var(--line)}
+.prob{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.prob a{font-size:13px;color:var(--ink);text-decoration:none;border-bottom:1.5px solid var(--accent)}
+.prob a:hover{color:var(--accent)}
+label.note{display:block;margin-top:18px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+textarea{width:100%;min-height:110px;margin-top:6px;padding:10px 12px;font:14px/1.5 var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);resize:vertical}
+.lock{font-size:13px;color:var(--muted);margin-top:12px}
+h2{font-family:var(--display);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.03em;margin:0 0 12px}
+.board{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:4px}
+@media (max-width:440px){.board{grid-template-columns:repeat(10,minmax(0,1fr))}}
+.cell{aspect-ratio:1;max-width:100%;border:1px solid var(--line);background:var(--bg);font:600 11px var(--mono);color:var(--muted);display:grid;place-items:center;padding:0;position:relative}
+.cell.part{background:var(--accent-soft);color:var(--ink)}
+.cell.full{background:var(--done);border-color:var(--done);color:#fff}
+.cell.miss{background:var(--miss-soft);border-color:var(--miss);color:var(--miss)}
+.cell.today{outline:2px solid var(--ink);outline-offset:1px}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border:1px solid var(--line);display:inline-block}
+.phases{margin-top:18px;display:grid;gap:6px;font-size:13px}
+.phase{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px}
+.phase b{font-family:var(--mono);font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.rules{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px}
+.settings{display:grid;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:14px}
+.settings .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+input[type=date]{font:inherit;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer}
+.sync{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.side{display:grid;gap:24px}
+.prob.learn{margin-top:4px;align-items:baseline}
+.prob.learn a{font-size:12.5px;color:var(--muted);border-bottom-color:var(--line)}
+.prob.learn a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.ltag{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-right:2px}
+.book{font-size:12.5px;color:var(--muted);font-style:italic}
+.lib{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px 32px}
+.lib h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.lib ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lib a,.lib .bk{font-weight:600;color:var(--ink);text-decoration:none;border-bottom:1.5px solid var(--accent)}
+.lib .bk{border-bottom:none}
+.lib a:hover{color:var(--accent)}
+.lib p{margin:2px 0 0;font-size:13px;color:var(--muted);max-width:52ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1 class="brand">75 Hard<br><span>Data Edition</span></h1>
+      <div class="tag">5 tasks a day · 75 days · miss one, start over</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="sDay">1</b><small>Today</small></div>
+      <div class="stat"><b id="sFull">0</b><small>Days complete</small></div>
+      <div class="stat"><b id="sStreak">0</b><small>Streak</small></div>
+      <div class="stat"><b id="sAtt">1</b><small>Attempt</small></div>
+    </div>
+  </header>
+
+  <div id="banner" hidden></div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="dayTitle">
+      <div class="dayhead">
+        <div class="daynum" id="dayTitle">Day 1 <small>/ 75</small></div>
+        <div class="daymeta"><strong id="dDate"></strong><span id="dPhase"></span></div>
+      </div>
+      <div class="nav">
+        <button class="btn" id="prev" aria-label="Previous day">← Prev</button>
+        <button class="btn" id="goToday">Today</button>
+        <button class="btn" id="next" aria-label="Next day">Next →</button>
+      </div>
+      <div class="progress" aria-hidden="true"><i id="bar" style="width:0"></i></div>
+      <ul class="tasks" id="tasks"></ul>
+      <label class="note" for="notes">Training log · explain today's concept like it's an interview answer</label>
+      <textarea id="notes" placeholder="e.g. A broadcast join ships the small table to every executor, so the big table never shuffles. Use it when one side fits in memory…"></textarea>
+      <p class="lock" id="lock" hidden>This day hasn't started yet. You can read ahead, but tasks unlock on the day.</p>
+    </section>
+
+    <div class="side">
+      <section class="panel">
+        <h2>The Board</h2>
+        <div class="board" id="board"></div>
+        <div class="legend">
+          <span><i style="background:var(--done);border-color:var(--done)"></i>All 5 done</span>
+          <span><i style="background:var(--accent-soft)"></i>Partial</span>
+          <span><i style="background:var(--miss-soft);border-color:var(--miss)"></i>Missed</span>
+        </div>
+        <div class="phases" id="phases"></div>
+      </section>
+
+      <section class="panel">
+        <h2>The Rules</h2>
+        <ol class="rules">
+          <li>Solve two DSA problems from the day's pattern, without looking at the solution for the first 20 minutes.</li>
+          <li>Write one SQL query from scratch against real tables.</li>
+          <li>Study one data engineering concept for 45 minutes.</li>
+          <li>Ship one commit to the weekly build project (30 minutes minimum).</li>
+          <li>Write the training log: explain the concept in your own words.</li>
+        </ol>
+        <div class="settings">
+          <div class="row"><label for="start">Day 1 was</label><input type="date" id="start"></div>
+          <div class="row">
+            <label class="switch" for="strict"><input type="checkbox" id="strict"> Strict mode (a missed day resets you)</label>
+          </div>
+          <div class="row">
+            <span class="sync" id="sync">Saving in this browser</span>
+            <span id="restartBox"><button class="btn danger" id="restart">Restart challenge</button></span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="libTitle">
+    <h2 id="libTitle">Resource Library</h2>
+    <div class="lib" id="lib"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+const LC = n => "https://leetcode.com/problems/" + n.toLowerCase().replace(/\(.*?\)/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") + "/";
+const DSA = [
+["Arrays & Hashing","Two Sum","Contains Duplicate"],["Arrays & Hashing","Valid Anagram","Group Anagrams"],["Arrays & Hashing","Top K Frequent Elements","Product of Array Except Self"],["Arrays & Hashing","Valid Sudoku","Longest Consecutive Sequence"],["Arrays & Hashing","Majority Element","Subarray Sum Equals K"],["Arrays & Hashing","Sort Colors","Insert Delete GetRandom O(1)"],["Arrays & Hashing","Encode and Decode Strings","Find All Duplicates in an Array"],
+["Two Pointers","Valid Palindrome","Two Sum II - Input Array Is Sorted"],["Two Pointers","3Sum","Container With Most Water"],["Two Pointers","Trapping Rain Water","Remove Duplicates from Sorted Array"],["Two Pointers","Move Zeroes","Merge Sorted Array"],
+["Sliding Window","Best Time to Buy and Sell Stock","Longest Substring Without Repeating Characters"],["Sliding Window","Longest Repeating Character Replacement","Permutation in String"],["Sliding Window","Minimum Window Substring","Sliding Window Maximum"],["Sliding Window","Maximum Average Subarray I","Fruit Into Baskets"],
+["Stack","Valid Parentheses","Min Stack"],["Stack","Evaluate Reverse Polish Notation","Daily Temperatures"],["Stack","Car Fleet","Largest Rectangle in Histogram"],
+["Binary Search","Binary Search","Search a 2D Matrix"],["Binary Search","Koko Eating Bananas","Find Minimum in Rotated Sorted Array"],["Binary Search","Search in Rotated Sorted Array","Time Based Key-Value Store"],["Binary Search","Find Peak Element","Median of Two Sorted Arrays"],
+["Linked List","Reverse Linked List","Merge Two Sorted Lists"],["Linked List","Linked List Cycle","Reorder List"],["Linked List","Remove Nth Node From End of List","Copy List with Random Pointer"],["Linked List","Add Two Numbers","Find the Duplicate Number"],["Linked List","LRU Cache","Merge k Sorted Lists"],
+["Trees","Invert Binary Tree","Maximum Depth of Binary Tree"],["Trees","Diameter of Binary Tree","Balanced Binary Tree"],["Trees","Same Tree","Subtree of Another Tree"],["Trees","Lowest Common Ancestor of a Binary Search Tree","Binary Tree Level Order Traversal"],["Trees","Binary Tree Right Side View","Count Good Nodes in Binary Tree"],["Trees","Validate Binary Search Tree","Kth Smallest Element in a BST"],["Trees","Construct Binary Tree from Preorder and Inorder Traversal","Binary Tree Maximum Path Sum"],["Trees","Serialize and Deserialize Binary Tree","Path Sum II"],
+["Heap","Kth Largest Element in a Stream","Last Stone Weight"],["Heap","K Closest Points to Origin","Kth Largest Element in an Array"],["Heap","Task Scheduler","Design Twitter"],["Heap","Find Median from Data Stream","Top K Frequent Words"],
+["Backtracking","Subsets","Combination Sum"],["Backtracking","Permutations","Subsets II"],["Backtracking","Combination Sum II","Word Search"],["Backtracking","Palindrome Partitioning","Letter Combinations of a Phone Number"],
+["Graphs","Number of Islands","Clone Graph"],["Graphs","Max Area of Island","Pacific Atlantic Water Flow"],["Graphs","Surrounded Regions","Rotting Oranges"],["Graphs","Course Schedule","Course Schedule II"],["Graphs","Number of Connected Components in an Undirected Graph","Graph Valid Tree"],["Graphs","Redundant Connection","Word Ladder"],["Graphs","Network Delay Time","Cheapest Flights Within K Stops"],["Graphs","Min Cost to Connect All Points","Alien Dictionary"],
+["1-D DP","Climbing Stairs","Min Cost Climbing Stairs"],["1-D DP","House Robber","House Robber II"],["1-D DP","Longest Palindromic Substring","Palindromic Substrings"],["1-D DP","Decode Ways","Coin Change"],["1-D DP","Maximum Product Subarray","Word Break"],["1-D DP","Longest Increasing Subsequence","Partition Equal Subset Sum"],["1-D DP","Maximum Subarray","Jump Game"],
+["2-D DP","Unique Paths","Longest Common Subsequence"],["2-D DP","Best Time to Buy and Sell Stock with Cooldown","Coin Change II"],["2-D DP","Target Sum","Interleaving String"],["2-D DP","Edit Distance","Longest Increasing Path in a Matrix"],["2-D DP","Distinct Subsequences","Burst Balloons"],
+["Intervals & Greedy","Insert Interval","Merge Intervals"],["Intervals & Greedy","Non-overlapping Intervals","Meeting Rooms II"],["Intervals & Greedy","Jump Game II","Gas Station"],["Intervals & Greedy","Hand of Straights","Partition Labels"],["Intervals & Greedy","Valid Parenthesis String","Minimum Interval to Include Each Query"],
+["Tries & Bits","Implement Trie (Prefix Tree)","Design Add and Search Words Data Structure"],["Tries & Bits","Word Search II","Single Number"],["Tries & Bits","Number of 1 Bits","Counting Bits"],
+["Mock Interview","Rotate Image","Spiral Matrix"],["Mock Interview","Set Matrix Zeroes","Happy Number"],["Mock Interview","Pow(x, n)","Multiply Strings"],["Final Mock","",""]
+];
+const SQL = [
+["Filtering & sorting","Customers who signed up in the last 30 days, newest first"],["GROUP BY + HAVING","Departments with more than 10 employees and an average salary above the company average"],["LEFT JOIN","Customers who have never placed an order"],["Self join","Employees who earn more than their manager"],["CASE WHEN pivot","Monthly revenue with one column per product category"],["Subquery vs CTE","Second-highest salary, returning NULL if none"],["ROW_NUMBER()","Latest order per customer"],["DENSE_RANK()","Top 3 salaries per department, ties included"],["LAG / LEAD","Day-over-day revenue change and percent change"],["Running total","Cumulative signups by day"],["Frame clauses","7-day rolling average of daily active users"],["Deduplication","Keep only the earliest copy of duplicate events"],["Gaps & islands","Each user's longest streak of consecutive login days"],["Date spine","Daily revenue with zero-filled missing days using generate_series"],["Recursive CTE","Every employee's depth below the CEO"],["Percentiles","Median order value per region with PERCENTILE_CONT"],["Cohorts","Week-N retention by signup-week cohort"],["Sessionization","Split clickstream into sessions on 30 minutes of inactivity"],["Funnels","View → add-to-cart → purchase conversion by day"],["SCD Type 2","A customer's address as of any given date"],["Anti-join / EXISTS","Products that have never been ordered"],["Set operations","Users active on both web and mobile in the same week"],["Query plans","Run EXPLAIN ANALYZE on a slow join, add an index, compare"],["Upserts","Idempotent load with INSERT … ON CONFLICT DO UPDATE"],["Filter on windows","Each user's first purchase after their free trial ended"]
+];
+const SQLP = [
+["Big Countries","Find Customer Referee","Recyclable and Low Fat Products"],["Classes More Than 5 Students","Customer Placing the Largest Number of Orders","Managers with at Least 5 Direct Reports"],["Customers Who Never Order","Employee Bonus","Customer Who Visited but Did Not Make Any Transactions"],["Employees Earning More Than Their Managers","Rising Temperature","The Number of Employees Which Report to Each Employee"],["Reformat Department Table","Count Salary Categories","Monthly Transactions I"],["Second Highest Salary","Nth Highest Salary","Investments in 2016"],["Game Play Analysis I","Product Sales Analysis III","Immediate Food Delivery II"],["Rank Scores","Department Highest Salary","Department Top Three Salaries"],["Exchange Seats","Consecutive Numbers","Game Play Analysis IV"],["Last Person to Fit in the Bus","Running Total for Different Genders","Game Play Analysis III"],["Restaurant Growth","Consecutive Numbers","Human Traffic of Stadium"],["Duplicate Emails","Delete Duplicate Emails","Primary Department for Each Employee"],["Consecutive Numbers","Find the Start and End Number of Continuous Ranges","Human Traffic of Stadium"],["Students and Examinations","Average Selling Price","Report Contiguous Dates"],["Find the Missing IDs","All People Report to the Given Manager","Find the Subtasks"],["Median Employee Salary","Queries Quality and Percentage","Find Median Given Frequency of Numbers"],["Confirmation Rate","Game Play Analysis IV","Game Play Analysis V"],["User Activity for the Past 30 Days I","Average Time of Process per Machine","Human Traffic of Stadium"],["Percentage of Users Attended a Contest","Immediate Food Delivery II","Trips and Users"],["Product Price at a Given Date","Product Price at a Given Date","Product Price at a Given Date"],["Customers Who Never Order","Sales Person","Employees Whose Manager Left the Company"],["Movie Rating","Friend Requests II: Who Has the Most Friends","Customers Who Bought All Products"],["Postgres docs: Using EXPLAIN|https://www.postgresql.org/docs/current/using-explain.html"],["Postgres docs: INSERT … ON CONFLICT|https://www.postgresql.org/docs/current/sql-insert.html"],["Game Play Analysis II","Product Sales Analysis III","Immediate Food Delivery II"]
+];
+const DL = {"Histogram of Tweets":"sql-histogram-tweets","Data Science Skills":"matching-skills","Page With No Likes":"sql-page-with-no-likes","Unfinished Parts":"tesla-unfinished-parts","Laptop vs. Mobile Viewership":"laptop-mobile-viewership","Average Post Hiatus (Part 1)":"sql-average-post-hiatus-1","Teams Power Users":"teams-power-users","Duplicate Job Listings":"duplicate-job-listings","Cities With Completed Trades":"completed-trades","Well Paid Employees":"sql-well-paid-employees","Final Account Balance":"final-account-balance","App Click-through Rate (CTR)":"click-through-rate","Second Day Confirmation":"second-day-confirmation","Cards Issued Difference":"cards-issued-difference","Compressed Mean":"alibaba-compressed-mean","User's Third Transaction":"sql-third-transaction","Second Highest Salary":"sql-second-highest-salary","Sending vs. Opening Snaps":"time-spent-snaps","Tweets' Rolling Averages":"rolling-average-tweets","Highest-Grossing Items":"sql-highest-grossing","Top Three Salaries":"sql-top-three-salaries","Signup Activation Rate":"signup-confirmation-rate","Spotify Streaming History":"spotify-streaming-history","Supercloud Customer":"supercloud-customer","Odd and Even Measurements":"odd-even-measurements","Swapped Food Delivery":"sql-swapped-food-delivery","FAANG Stock Min-Max (Part 1)":"sql-bloomberg-stock-min-max-1","Best-Selling Product":"best-selling-products","User Shopping Sprees":"amazon-shopping-spree","Histogram of Users and Purchases":"histogram-users-purchases","Compressed Mode":"alibaba-compressed-mode","Card Launch Success":"card-launch-success","International Call Percentage":"international-call-percentage","Active User Retention":"user-retention","Y-on-Y Growth Rate":"yoy-growth-rate","Median Google Search Frequency":"median-search-freq","Advertiser Status":"updated-status","Consecutive Filing Years":"consecutive-filing-years","Marketing Touch Streak":"marketing-touch-streak","Patient Support Analysis (Part 3)":"patient-call-history","Patient Support Analysis (Part 4)":"long-calls-growth","Repeated Payments":"repeated-payments","Reactivated Users":"reactivated-users","Senior Managers":"senior-managers-reportees","Server Utilization Time":"total-utilization-time","3-Topping Pizzas":"pizzas-topping-cost"};
+const DLP = [
+["Unfinished Parts","Laptop vs. Mobile Viewership","Cities With Completed Trades"],["Data Science Skills","Teams Power Users","Histogram of Tweets"],["Page With No Likes","Cities With Completed Trades","Signup Activation Rate"],["Well Paid Employees","Well Paid Employees","Senior Managers"],["Laptop vs. Mobile Viewership","Final Account Balance","Odd and Even Measurements"],["Second Highest Salary","Supercloud Customer","Compressed Mode"],["User's Third Transaction","Best-Selling Product","Card Launch Success"],["Highest-Grossing Items","Top Three Salaries","Top Three Salaries"],["Average Post Hiatus (Part 1)","Cards Issued Difference","Y-on-Y Growth Rate"],["Final Account Balance","Spotify Streaming History","Patient Support Analysis (Part 4)"],["Tweets' Rolling Averages","Tweets' Rolling Averages","Patient Support Analysis (Part 4)"],["Duplicate Job Listings","Repeated Payments","Repeated Payments"],["User Shopping Sprees","Consecutive Filing Years","Marketing Touch Streak"],["Histogram of Users and Purchases","Server Utilization Time","Server Utilization Time"],["Senior Managers"],["Compressed Mean","Median Google Search Frequency","Median Google Search Frequency"],["Second Day Confirmation","Reactivated Users","Active User Retention"],["Sending vs. Opening Snaps","User Shopping Sprees","Server Utilization Time"],["App Click-through Rate (CTR)","Signup Activation Rate","International Call Percentage"],["Advertiser Status"],["Page With No Likes","Supercloud Customer","Patient Support Analysis (Part 3)"],["Supercloud Customer","Swapped Food Delivery","3-Topping Pizzas"],[],[],["User's Third Transaction","FAANG Stock Min-Max (Part 1)","Card Launch Success"]
+];
+function sqlLinks(i,pass){
+  const pick = a => a.length ? a[pass % a.length] : null, out=[];
+  const lc = pick(SQLP[i]); if(lc) out.push(lc.includes("|") ? lc : lc+" · LeetCode|"+LC(lc));
+  const dl = pick(DLP[i]); if(dl) out.push(dl+" · DataLemur|https://datalemur.com/questions/"+DL[dl]);
+  return out;
+}
+const MODE="https://mode.com/sql-tutorial/", PG="https://www.postgresql.org/docs/current/";
+const SQLL = [
+["Mode: WHERE|"+MODE+"sql-where","Postgres: ORDER BY|"+PG+"queries-order.html"],["Mode: GROUP BY|"+MODE+"sql-group-by","Mode: HAVING|"+MODE+"sql-having"],["Mode: LEFT JOIN|"+MODE+"sql-left-join","Postgres: joins|"+PG+"queries-table-expressions.html"],["Mode: self joins|"+MODE+"sql-self-joins","Postgres: joins|"+PG+"queries-table-expressions.html"],["Mode: CASE|"+MODE+"sql-case","Postgres: CASE|"+PG+"functions-conditional.html"],["Mode: subqueries|"+MODE+"sql-subqueries","Postgres: WITH (CTEs)|"+PG+"queries-with.html"],["Mode: window functions|"+MODE+"sql-window-functions","Postgres: window tutorial|"+PG+"tutorial-window.html"],["Mode: window functions|"+MODE+"sql-window-functions","Postgres: window functions|"+PG+"functions-window.html"],["Mode: window functions|"+MODE+"sql-window-functions","Postgres: window functions|"+PG+"functions-window.html"],["Postgres: window tutorial|"+PG+"tutorial-window.html","Mode: window functions|"+MODE+"sql-window-functions"],["Postgres: window frames|"+PG+"sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS","Postgres: window tutorial|"+PG+"tutorial-window.html"],["Postgres: SELECT DISTINCT ON|"+PG+"sql-select.html","Postgres: window tutorial|"+PG+"tutorial-window.html"],["Mode: window functions|"+MODE+"sql-window-functions","Postgres: window functions|"+PG+"functions-window.html"],["Postgres: generate_series|"+PG+"functions-srf.html","Postgres: date functions|"+PG+"functions-datetime.html"],["Postgres: recursive CTEs|"+PG+"queries-with.html"],["Postgres: ordered-set aggregates|"+PG+"functions-aggregate.html"],["Postgres: date_trunc|"+PG+"functions-datetime.html","Mode: window functions|"+MODE+"sql-window-functions"],["Postgres: window tutorial|"+PG+"tutorial-window.html","Postgres: date functions|"+PG+"functions-datetime.html"],["Mode: CASE|"+MODE+"sql-case","Postgres: aggregate FILTER|"+PG+"sql-expressions.html#SYNTAX-AGGREGATES"],["Kimball: dimensional techniques|https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/"],["Postgres: EXISTS / NOT EXISTS|"+PG+"functions-subquery.html"],["Mode: UNION|"+MODE+"sql-union","Postgres: set operations|"+PG+"queries-union.html"],["Mode: performance tuning|"+MODE+"sql-performance-tuning","Postgres: indexes|"+PG+"indexes.html"],["Postgres: MERGE|"+PG+"sql-merge.html"],["Mode: window functions|"+MODE+"sql-window-functions","Postgres: window functions|"+PG+"functions-window.html"]
+];
+const ZOOM="Data Engineering Zoomcamp|https://github.com/DataTalksClub/data-engineering-zoomcamp";
+const WEEKR = [
+["Parquet docs|https://parquet.apache.org/docs/","Book: DDIA ch. 3 (storage) & ch. 4 (encoding)"],
+["Kimball techniques|https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/","Book: The Data Warehouse Toolkit ch. 1–5"],
+["Snowflake key concepts|https://docs.snowflake.com/en/user-guide/intro-key-concepts","dbt docs|https://docs.getdbt.com/docs/introduction"],
+["Airflow docs|https://airflow.apache.org/docs/apache-airflow/stable/index.html","Book: Fundamentals of Data Engineering ch. 2 & 8"],
+["Spark RDD guide|https://spark.apache.org/docs/latest/rdd-programming-guide.html","Spark tuning guide|https://spark.apache.org/docs/latest/sql-performance-tuning.html","Book: Learning Spark, 2nd ed."],
+["Delta Lake docs|https://docs.delta.io/latest/index.html","Apache Iceberg docs|https://iceberg.apache.org/docs/latest/"],
+["Kafka documentation|https://kafka.apache.org/documentation/","Confluent Developer|https://developer.confluent.io/","Book: DDIA ch. 11"],
+["Structured Streaming guide|https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html","Debezium docs|https://debezium.io/documentation/","Book: Streaming Systems ch. 1–3"],
+["Great Expectations|https://greatexpectations.io/","Book: Fundamentals of Data Engineering ch. 2 (undercurrents)"],
+["System Design Primer|https://github.com/donnemartin/system-design-primer","Book: DDIA ch. 10–12"],
+["Behavioral interview guide|https://www.techinterviewhandbook.org/behavioral-interview/","Data Engineer Handbook|https://github.com/DataExpert-io/data-engineer-handbook"]
+];
+const BUILDR = [[ZOOM,"Postgres in Docker|https://hub.docker.com/_/postgres"],[ZOOM,"Kimball techniques|https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/"],[ZOOM,"dbt docs|https://docs.getdbt.com/docs/introduction"],[ZOOM,"Airflow Docker Compose|https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html"],[ZOOM,"PySpark docs|https://spark.apache.org/docs/latest/api/python/index.html"],["Delta Lake docs|https://docs.delta.io/latest/index.html","Apache Iceberg docs|https://iceberg.apache.org/docs/latest/"],[ZOOM,"Confluent Developer|https://developer.confluent.io/"],["Structured Streaming guide|https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html",ZOOM],["Great Expectations|https://greatexpectations.io/","dbt docs|https://docs.getdbt.com/docs/introduction"],["System Design Primer|https://github.com/donnemartin/system-design-primer"],["Data Engineer Handbook|https://github.com/DataExpert-io/data-engineer-handbook"]];
+const YT = q => "https://www.youtube.com/results?search_query="+encodeURIComponent(q);
+const LIB = [
+["DSA",[["NeetCode Roadmap","https://neetcode.io/roadmap","The 150 core problems grouped by pattern, each with a video solution. This plan follows its order."],["Tech Interview Handbook","https://www.techinterviewhandbook.org/","Free study plans, topic cheat sheets and coding interview tips."],["LeetCode","https://leetcode.com/problemset/","Where you submit. Filter by tag to drill a weak pattern."],["Big-O Cheat Sheet","https://www.bigocheatsheet.com/","Complexities for common data structures and sorts, for quick review."]]],
+["SQL",[["DataLemur","https://datalemur.com/questions","Real FAANG-style SQL interview questions, easy to hard."],["LeetCode Top SQL 50","https://leetcode.com/studyplan/top-sql-50/","A structured 50-question plan. Good warm-up before the harder passes."],["StrataScratch","https://www.stratascratch.com/","Large bank of company-tagged SQL and Python questions. Filter by data engineer."],["PostgreSQL Exercises","https://pgexercises.com/","Free, Postgres-specific drills with an in-browser runner."],["Mode SQL Tutorial","https://mode.com/sql-tutorial/","Clear walkthroughs from basics to window functions."],["HackerRank SQL","https://www.hackerrank.com/domains/sql","Many short problems. Good for speed."]]],
+["Data engineering concepts",[["Designing Data-Intensive Applications","https://dataintensive.net/","Martin Kleppmann's book. The single most-cited DE interview reference."],["Fundamentals of Data Engineering","https://www.oreilly.com/library/view/fundamentals-of-data/9781098108298/","Reis & Housley. The data engineering lifecycle end to end."],["The Data Warehouse Toolkit","","Ralph Kimball's book on dimensional modeling. Read chapters 1–5."],["Kimball techniques","https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/","Free one-page summaries of every modeling technique."],["Start Data Engineering","https://www.startdataengineering.com/","Practical articles and project templates."],["Data Engineer Handbook","https://github.com/DataExpert-io/data-engineer-handbook","Zach Wilson's curated list of books, courses, communities and interview prep."]]],
+["Hands-on courses",[["Data Engineering Zoomcamp","https://github.com/DataTalksClub/data-engineering-zoomcamp","Free 9-week course built on the same NYC taxi data as your build project."],["Confluent Developer","https://developer.confluent.io/","Free Kafka courses and tutorials from the Kafka creators."],["dbt docs","https://docs.getdbt.com/docs/introduction","Official guides, including the jaffle shop quickstart."]]],
+["System design & mocks",[["System Design Primer","https://github.com/donnemartin/system-design-primer","Free, thorough guide to scaling, caching, queues and storage."],["ByteByteGo","https://bytebytego.com/","Alex Xu's visual system design explanations (mostly paid)."],["interviewing.io","https://interviewing.io/","Anonymous mock interviews with engineers from top companies."],["Exponent","https://www.tryexponent.com/","Data engineering interview courses and peer mocks (paid)."]]]
+];
+const PASS = ["Pass 1 · learn it","Pass 2 · harder variant","Pass 3 · timed, 15 min"];
+const DE = [
+"OLTP vs OLAP workloads","Normalization (1NF–3NF) and when to denormalize","Row vs columnar storage","Parquet internals: row groups, column chunks, min/max stats","File formats: Parquet vs Avro vs ORC vs CSV/JSON","Compression codecs: Snappy, ZSTD, gzip, splittability","Partitioning and partition pruning",
+"Kimball dimensional modeling","Fact table types: transaction, periodic snapshot, accumulating","Dimensions: conformed, junk, degenerate, role-playing","Slowly changing dimensions: Type 1, 2, 3","Star vs snowflake vs one big table","Data Vault basics: hubs, links, satellites","Declaring the grain before you model",
+"MPP warehouse architecture","Snowflake: storage/compute separation, micro-partitions","BigQuery: slots, partitioning, clustering","Redshift: distribution styles and sort keys","ETL vs ELT","dbt: models, ref(), sources, tests","Incremental models and merge strategies",
+"Airflow: DAGs, operators, scheduler, executors","Idempotent, deterministic pipelines","Backfills and catchup","Sensors, retries, timeouts, SLAs","Data-aware scheduling and dependency design","Airflow vs Dagster vs Prefect","Late-arriving data in batch pipelines",
+"Spark architecture: driver, executors, cluster manager","Lazy evaluation: jobs, stages, tasks, the DAG","Narrow vs wide transformations and the shuffle","Join strategies: broadcast, sort-merge, shuffle hash","Data skew and salting","repartition vs coalesce; choosing partition counts","Caching and storage levels",
+"Catalyst optimizer and Adaptive Query Execution","Spark memory model and debugging OOMs","The small files problem and compaction","Delta Lake: transaction log, time travel, OPTIMIZE","Apache Iceberg: snapshots, hidden partitioning","MERGE INTO and upserts on the lake","Medallion architecture: bronze, silver, gold",
+"Batch vs streaming trade-offs","Kafka: topics, partitions, replication, ISR","Producers: acks, keys, ordering guarantees","Consumer groups, rebalancing, offset commits","Delivery semantics: at-most, at-least, exactly once","Schema Registry and schema evolution rules","Kafka Connect: sources and sinks",
+"Event time vs processing time","Windows: tumbling, sliding, session","Watermarks and late data","Stateful processing and checkpointing","Flink vs Spark Structured Streaming","CDC with Debezium and log-based capture","Lambda vs Kappa architecture",
+"Data quality dimensions: accuracy, completeness, timeliness","Testing data: Great Expectations and dbt tests","Data contracts between producers and consumers","Observability: freshness, volume, schema drift","Lineage and data catalogs","PII: masking, tokenization, GDPR deletes","Cost optimization in cloud warehouses",
+"Design: clickstream analytics pipeline","Design: real-time fraud detection","Design: daily batch ETL for an e-commerce warehouse","Design: Postgres → warehouse CDC replication","Design: feature store for ML","Design: ride-sharing trip data platform","Back-of-envelope capacity estimation",
+"Behavioral: three STAR stories from your own pipelines","Walk through your best project end-to-end in 5 minutes","Trade-off drill: why X over Y, 20 rapid questions","Timed mock system design, 45 minutes","Final review: your three weakest topics"
+];
+const BUILD = [
+["Ingest","Load a public CSV (e.g. NYC taxi trips) into Postgres with a Python loader and schema checks"],
+["Model","Turn it into a star schema: fact_trips, dim_date, dim_zone"],
+["Transform","Rebuild the transforms in dbt: staging → marts, with tests and docs"],
+["Orchestrate","Run it from Airflow in Docker Compose; make every task idempotent and backfillable"],
+["Scale","Rewrite the heavy transform in PySpark and write partitioned Parquet"],
+["Lakehouse","Move the output to Delta Lake or Iceberg and implement MERGE upserts"],
+["Stream","Stand up Kafka in Docker; write a producer that replays trips as events"],
+["Process","Consume the stream and compute 5-minute windowed metrics with late-data handling"],
+["Trust","Add data quality checks and a freshness alert to the whole pipeline"],
+["Design","Write design docs with diagrams for two of this week's system design prompts"],
+["Ship","Polish the README, record a 5-minute walkthrough, add the project to your resume"]
+];
+const PHASES = [[1,7,"Foundations & storage"],[8,14,"Data modeling"],[15,21,"Warehouses & dbt"],[22,28,"Orchestration"],[29,35,"Spark I"],[36,42,"Spark II & lakehouse"],[43,49,"Kafka & streaming I"],[50,56,"Streaming II & CDC"],[57,63,"Quality & governance"],[64,70,"System design"],[71,75,"Interview polish"]];
+
+function plan(d){
+  const w = Math.min(10, Math.floor((d-1)/7)); const ds = DSA[d-1], sq = SQL[(d-1)%25];
+  const dsaTask = d===75
+    ? {k:"DSA",m:"Final Mock",t:"Re-solve two problems you struggled with during the challenge",x:"Pick from your training log. Talk through each out loud, timed at 25 minutes.",p:[]}
+    : {k:"DSA",m:ds[0],t:"Solve 2 problems: "+ds[0],x:"Explain time and space complexity before you submit. Watch the walkthrough only after you've tried.",p:[ds[1],ds[2]],l:["Walkthrough: "+ds[1]+"|"+YT("neetcode "+ds[1]),"Walkthrough: "+ds[2]+"|"+YT("neetcode "+ds[2]),"NeetCode roadmap|https://neetcode.io/roadmap"]};
+  return [dsaTask,
+    {k:"SQL",m:sq[0]+" · "+PASS[Math.floor((d-1)/25)],t:sq[1],x:"Solve both linked problems, then write the query above against your own Postgres tables.",p:sqlLinks((d-1)%25,Math.floor((d-1)/25)),l:SQLL[(d-1)%25]},
+    {k:"Concept",m:"45 min",t:DE[d-1],x:"Read, then sketch it. Be ready to answer “when would you not use this?”",p:[],l:WEEKR[w].concat(["Video explainers|"+YT(DE[d-1]+" data engineering")])},
+    {k:"Build",m:"Week "+(w+1)+" · "+BUILD[w][0],t:BUILD[w][1],x:"30 minutes minimum. Ship one commit today.",p:[],l:BUILDR[w]},
+    {k:"Log",m:"5 min",t:"Explain today's concept in your own words below",x:"3–5 sentences, as if answering an interviewer.",p:[]}];
+}
+
+// ---- dates
+const iso = dt => dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+const parse = s => { const [y,m,d]=s.split("-").map(Number); return Date.UTC(y,m-1,d); };
+const todayIso = () => iso(new Date());
+const dayNumber = () => Math.floor((parse(todayIso())-parse(S.start))/864e5)+1;
+const dateOf = d => { const t=new Date(parse(S.start)+(d-1)*864e5); return t.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"}); };
+
+// ---- state
+const KEY="hard75-data-v1";
+const FIRST_DAY = "2026-10-29";
+const fresh = () => ({start:(todayIso() < FIRST_DAY ? FIRST_DAY : todayIso()),strict:true,done:{},notes:{},attempts:1});
+let S; try{ S = JSON.parse(localStorage.getItem(KEY)) || fresh(); }catch(e){ S = fresh(); }
+let sel = Math.min(75, Math.max(1, dayNumber()));
+let docRef=null, timer=null;
+
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  if(!docRef) return;
+  clearTimeout(timer); timer=setTimeout(()=>{
+    docRef.set(JSON.parse(JSON.stringify(S))).then(()=>setSync("Saved to your account")).catch(()=>setSync("Couldn't sync. Saved in this browser"));
+  },600);
+}
+const setSync = t => document.getElementById("sync").textContent = t;
+
+const doneArr = d => S.done[d] || [0,0,0,0,0];
+const isFull = d => doneArr(d).every(Boolean);
+const count = d => doneArr(d).filter(Boolean).length;
+
+function firstMiss(){ const today=dayNumber(); for(let d=1; d<Math.min(today,76); d++) if(!isFull(d)) return d; return 0; }
+function streak(){ let t=Math.min(dayNumber(),75), n=0; if(!isFull(t)) t--; for(let d=t; d>=1 && isFull(d); d--) n++; return n; }
+
+// ---- render
+const $ = id => document.getElementById(id);
+function render(){
+  const today = dayNumber();
+  $("sDay").textContent = today>75 ? "Done" : today<1 ? "Soon" : today;
+  let full=0; for(let d=1; d<=75; d++) if(isFull(d)) full++;
+  $("sFull").textContent = full; $("sStreak").textContent = streak(); $("sAtt").textContent = S.attempts;
+  $("start").value = S.start; $("strict").checked = S.strict;
+
+  // banner
+  const b=$("banner"), miss=firstMiss();
+  if(full===75){ b.className="banner win"; b.innerHTML="<p><strong>75 of 75.</strong> You did the whole thing. Go book the interviews.</p>"; b.hidden=false; }
+  else if(S.strict && miss){ b.className="banner"; b.innerHTML="<p><strong>Day "+miss+" wasn't finished.</strong> Strict mode means the count resets. Start again from Day 1 today, or turn strict mode off to keep going.</p><span id=\"bBox\"><button class=\"btn danger\" id=\"bRestart\">Restart from Day 1</button></span>"; b.hidden=false;
+    $("bRestart").onclick = ()=>confirmRestart($("bBox")); }
+  else b.hidden=true;
+
+  // day panel
+  const p = plan(sel), locked = sel>today, arr=doneArr(sel);
+  $("dayTitle").innerHTML = "Day "+sel+" <small>/ 75</small>";
+  $("dDate").textContent = dateOf(sel) + (sel===today?" · today":"");
+  $("dPhase").textContent = PHASES.find(x=>sel>=x[0]&&sel<=x[1])[2];
+  $("prev").disabled = sel<=1; $("next").disabled = sel>=75;
+  $("bar").style.width = (count(sel)/5*100)+"%";
+  const ul=$("tasks"); ul.innerHTML="";
+  p.forEach((t,i)=>{
+    const li=document.createElement("li"); li.className="task"+(arr[i]?" on":"");
+    const cb=document.createElement("input"); cb.type="checkbox"; cb.id="t"+i; cb.checked=!!arr[i]; cb.disabled=locked;
+    cb.setAttribute("aria-label",t.k+": "+t.t);
+    cb.onchange=()=>{ const a=doneArr(sel).slice(); a[i]=cb.checked?1:0; S.done[sel]=a; save(); render(); };
+    const box=document.createElement("div");
+    const lab=document.createElement("div"); lab.className="tlabel"; lab.textContent=t.k;
+    const em=document.createElement("em"); em.textContent=t.m; lab.appendChild(em);
+    const ti=document.createElement("p"); ti.className="ttitle"; ti.textContent=t.t;
+    const de=document.createElement("p"); de.className="tdesc"; de.textContent=t.x;
+    box.append(lab,ti,de);
+    if(t.p.length){ const pr=document.createElement("div"); pr.className="prob";
+      t.p.forEach(n=>{ const a=document.createElement("a"); const [nm,url]=n.split("|"); a.href=url||LC(nm); a.target="_blank"; a.rel="noopener"; a.textContent=nm+" ↗"; pr.appendChild(a); }); box.appendChild(pr); }
+    if(t.l && t.l.length){ const lr=document.createElement("div"); lr.className="prob learn";
+      const tag=document.createElement("span"); tag.className="ltag"; tag.textContent="Learn"; lr.appendChild(tag);
+      t.l.forEach(n=>{ const [nm,url]=n.split("|");
+        if(url){ const a=document.createElement("a"); a.href=url; a.target="_blank"; a.rel="noopener"; a.textContent=nm+" ↗"; lr.appendChild(a); }
+        else { const s=document.createElement("span"); s.className="book"; s.textContent=nm; lr.appendChild(s); } });
+      box.appendChild(lr); }
+    li.append(cb,box); ul.appendChild(li);
+  });
+  const ta=$("notes"); if(document.activeElement!==ta) ta.value = S.notes[sel]||""; ta.disabled=locked;
+  $("lock").hidden=!locked;
+
+  // board
+  const bd=$("board"); bd.innerHTML="";
+  for(let d=1; d<=75; d++){
+    const c=document.createElement("button"); c.className="cell"; c.textContent=d;
+    const n=count(d); if(n===5) c.classList.add("full"); else if(d<today && d<=75) c.classList.add("miss"); else if(n) c.classList.add("part");
+    if(d===today) c.classList.add("today"); if(d===sel) c.classList.add("sel");
+    c.setAttribute("aria-label","Day "+d+", "+n+" of 5 done"); c.onclick=()=>{ sel=d; render(); };
+    bd.appendChild(c);
+  }
+  $("phases").innerHTML = PHASES.map(x=>"<div class=\"phase\"><b>"+String(x[0]).padStart(2,"0")+"–"+String(x[1]).padStart(2,"0")+"</b><span>"+x[2]+"</span></div>").join("");
+}
+
+function confirmRestart(box){
+  const orig=box.innerHTML;
+  box.innerHTML="<button class=\"btn danger\" id=\"cy\">Yes, reset to Day 1</button> <button class=\"btn\" id=\"cn\">Cancel</button>";
+  box.querySelector("#cy").onclick=()=>{ S={start:todayIso(),strict:S.strict,done:{},notes:{},attempts:(S.attempts||1)+1}; sel=1; save(); render(); if(box.id==="restartBox") box.innerHTML=orig, wire(); };
+  box.querySelector("#cn").onclick=()=>{ box.innerHTML=orig; if(box.id==="restartBox") wire(); else render(); };
+}
+function wire(){ $("restart").onclick=()=>confirmRestart($("restartBox")); }
+
+$("prev").onclick=()=>{ sel=Math.max(1,sel-1); render(); };
+$("next").onclick=()=>{ sel=Math.min(75,sel+1); render(); };
+$("goToday").onclick=()=>{ sel=Math.min(75,Math.max(1,dayNumber())); render(); };
+$("notes").oninput=e=>{ S.notes[sel]=e.target.value; save(); };
+$("start").onchange=e=>{ if(e.target.value){ S.start=e.target.value; sel=Math.min(75,Math.max(1,dayNumber())); save(); render(); } };
+$("strict").onchange=e=>{ S.strict=e.target.checked; save(); render(); };
+(function(){ const root=$("lib");
+  LIB.forEach(([cat,items])=>{ const col=document.createElement("div"); const h=document.createElement("h3"); h.textContent=cat; const ul=document.createElement("ul");
+    items.forEach(([n,u,d])=>{ const li=document.createElement("li"); let el;
+      if(u){ el=document.createElement("a"); el.href=u; el.target="_blank"; el.rel="noopener"; el.textContent=n+" ↗"; } else { el=document.createElement("span"); el.className="bk"; el.textContent=n+" (book)"; }
+      const p=document.createElement("p"); p.textContent=d; li.append(el,p); ul.appendChild(li); });
+    col.append(h,ul); root.appendChild(col); }); })();
+wire(); render();
+
+// ---- sync to account when available
+(async()=>{
+  try{
+    if(!window.claude || !window.claude.use) return;
+    const [db,user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if(!db || !user) return;
+    const id = await user.id(); if(!id) return;
+    docRef = db.doc("data/users/"+id+"/challenge/state");
+    const snap = await docRef.get();
+    if(snap.exists){ const d=snap.data(); if(d && d.start){ S=Object.assign(fresh(),d); sel=Math.min(75,Math.max(1,dayNumber())); try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); } setSync("Saved to your account"); }
+    else { save(); }
+  }catch(e){ setSync("Saving in this browser"); }
+})();
+})();
+</script>
+
+</body></html>
