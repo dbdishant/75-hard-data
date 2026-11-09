@@ -102,9 +102,34 @@ input[type=date]{font:inherit;padding:5px 8px;border:1px solid var(--line);backg
 .lib a:hover{color:var(--accent)}
 .lib p{margin:2px 0 0;font-size:13px;color:var(--muted);max-width:52ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.auth-panel{max-width:480px;margin:32px auto;padding:26px;background:var(--surface);border:1px solid var(--line)}
+.auth-panel h2{margin-bottom:8px}.auth-panel p{color:var(--muted)}
+.auth-panel label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+.auth-panel input{width:100%;padding:11px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.auth-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.auth-status{font-size:13px;white-space:pre-wrap;margin-top:12px}
+.account-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.account-bar span{overflow-wrap:anywhere;font-size:13px;color:var(--muted)}
 </style>
 
-<div class="wrap">
+<section class="auth-panel" id="authPanel" aria-labelledby="authTitle">
+  <h2 id="authTitle">Sign in to your challenge</h2>
+  <p>Your progress syncs across devices using Supabase.</p>
+  <form id="authForm">
+    <label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required>
+    <label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+    <div class="auth-actions">
+      <button class="btn primary" type="submit" id="signIn">Sign in</button>
+      <button class="btn" type="button" id="signUp">Create account</button>
+      <button class="btn" type="button" id="resetPassword">Reset password</button>
+    </div>
+  </form>
+  <p class="auth-status" id="authStatus" role="status">Loading…</p>
+</section>
+
+<div class="wrap" id="app" hidden>
+  <div class="account-bar"><span id="accountEmail"></span><button class="btn" id="signOut">Sign out</button></div>
   <header>
     <div>
       <h1 class="brand">75 Hard<br><span>Data Edition</span></h1>
@@ -179,6 +204,7 @@ input[type=date]{font:inherit;padding:5px 8px;border:1px solid var(--line);backg
   </section>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
 const LC = n => "https://leetcode.com/problems/" + n.toLowerCase().replace(/\(.*?\)/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") + "/";
@@ -294,19 +320,54 @@ const dateOf = d => { const t=new Date(parse(S.start)+(d-1)*864e5); return t.toL
 const KEY="hard75-data-v1";
 const FIRST_DAY = "2026-10-29";
 const fresh = () => ({start:(todayIso() < FIRST_DAY ? FIRST_DAY : todayIso()),strict:true,done:{},notes:{},attempts:1});
-let S; try{ S = JSON.parse(localStorage.getItem(KEY)) || fresh(); }catch(e){ S = fresh(); }
-let sel = Math.min(75, Math.max(1, dayNumber()));
-let docRef=null, timer=null;
-
+// Replace these two placeholders with values from Supabase > Project Settings > API.
+// Only use the publishable/anon key here. NEVER put a service_role or secret key in this file.
+const SUPABASE_URL = "https://bywcqnjyotkttuxxcqsa.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_CQKotOIUrQF4qwk_3O557Q_teLGgzTU";
+const configured = SUPABASE_URL.startsWith("https://") && !SUPABASE_PUBLISHABLE_KEY.startsWith("YOUR_");
+const client = configured && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
+let S = fresh();
+let sel = 1, activeUser = null, timer = null, generation = 0, loadingAccount = false;
+const $ = id => document.getElementById(id);
+const setSync = t => $("sync").textContent = t;
+const authStatus = t => $("authStatus").textContent = t;
+const validState = d => d && typeof d === "object" && /^\d{4}-\d{2}-\d{2}$/.test(d.start) && d.done && typeof d.done === "object" && d.notes && typeof d.notes === "object";
+function localKey(id){return KEY + ":user:" + id;}
+function showAuth(){ $("app").hidden = true; $("authPanel").hidden = false; }
+function showApp(){ $("authPanel").hidden = true; $("app").hidden = false; }
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
-  if(!docRef) return;
-  clearTimeout(timer); timer=setTimeout(()=>{
-    docRef.set(JSON.parse(JSON.stringify(S))).then(()=>setSync("Saved to your account")).catch(()=>setSync("Couldn't sync. Saved in this browser"));
-  },600);
+  if(!activeUser || loadingAccount) return;
+  const id=activeUser.id, epoch=generation;
+  try{localStorage.setItem(localKey(id),JSON.stringify(S));}catch(e){}
+  setSync("Saving…");
+  clearTimeout(timer);
+  timer=setTimeout(async()=>{
+    if(!activeUser || activeUser.id!==id || generation!==epoch) return;
+    const snapshot=JSON.parse(JSON.stringify(S));
+    const {error}=await client.from("challenge_progress").upsert({user_id:id,state:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(activeUser && activeUser.id===id && generation===epoch) setSync(error ? "Cloud save failed: " + error.message + " (saved in this browser)" : "Saved to cloud");
+  },700);
 }
-const setSync = t => document.getElementById("sync").textContent = t;
-
+async function loadAccount(user){
+  generation++; clearTimeout(timer); loadingAccount=true; activeUser=user;
+  showAuth(); authStatus("Loading your saved challenge…");
+  const epoch=generation;
+  const {data,error}=await client.from("challenge_progress").select("state").eq("user_id",user.id).maybeSingle();
+  if(epoch!==generation) return;
+  if(error){
+    authStatus("Unable to load cloud progress: " + error.message + ". Please retry signing in. No changes were made.");
+    loadingAccount=false; activeUser=null; return;
+  }
+  let cached=null;
+  try{cached=JSON.parse(localStorage.getItem(localKey(user.id)));}catch(e){}
+  S=validState(data?.state) ? data.state : validState(cached) ? cached : fresh();
+  sel=Math.min(75,Math.max(1,dayNumber()));
+  loadingAccount=false;
+  $("accountEmail").textContent="Signed in: " + (user.email||"your account");
+  showApp(); render();
+  setSync(data?.state ? "Loaded from cloud" : "New challenge — saving to cloud");
+  if(!data?.state) save();
+}
 const doneArr = d => S.done[d] || [0,0,0,0,0];
 const isFull = d => doneArr(d).every(Boolean);
 const count = d => doneArr(d).filter(Boolean).length;
@@ -315,7 +376,6 @@ function firstMiss(){ const today=dayNumber(); for(let d=1; d<Math.min(today,76)
 function streak(){ let t=Math.min(dayNumber(),75), n=0; if(!isFull(t)) t--; for(let d=t; d>=1 && isFull(d); d--) n++; return n; }
 
 // ---- render
-const $ = id => document.getElementById(id);
 function render(){
   const today = dayNumber();
   $("sDay").textContent = today>75 ? "Done" : today<1 ? "Soon" : today;
@@ -394,21 +454,53 @@ $("strict").onchange=e=>{ S.strict=e.target.checked; save(); render(); };
       if(u){ el=document.createElement("a"); el.href=u; el.target="_blank"; el.rel="noopener"; el.textContent=n+" ↗"; } else { el=document.createElement("span"); el.className="bk"; el.textContent=n+" (book)"; }
       const p=document.createElement("p"); p.textContent=d; li.append(el,p); ul.appendChild(li); });
     col.append(h,ul); root.appendChild(col); }); })();
-wire(); render();
+wire();
 
-// ---- sync to account when available
-(async()=>{
-  try{
-    if(!window.claude || !window.claude.use) return;
-    const [db,user] = await Promise.all([claude.use("db"), claude.use("user")]);
-    if(!db || !user) return;
-    const id = await user.id(); if(!id) return;
-    docRef = db.doc("data/users/"+id+"/challenge/state");
-    const snap = await docRef.get();
-    if(snap.exists){ const d=snap.data(); if(d && d.start){ S=Object.assign(fresh(),d); sel=Math.min(75,Math.max(1,dayNumber())); try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); } setSync("Saved to your account"); }
-    else { save(); }
-  }catch(e){ setSync("Saving in this browser"); }
-})();
+ // ---- Supabase Auth
+$("authForm").onsubmit=async e=>{
+  e.preventDefault(); if(!client) return;
+  authStatus("Signing in…");
+  const {error}=await client.auth.signInWithPassword({email:$("authEmail").value.trim(),password:$("authPassword").value});
+  if(error) authStatus(error.message);
+};
+$("signUp").onclick=async()=>{
+  if(!client || !$("authEmail").reportValidity() || !$("authPassword").reportValidity()) return;
+  authStatus("Creating account…");
+  const {data,error}=await client.auth.signUp({email:$("authEmail").value.trim(),password:$("authPassword").value,options:{emailRedirectTo:location.origin+location.pathname}});
+  authStatus(error ? error.message : data.session ? "Account created. Loading…" : "Check your email for the confirmation link, then sign in.");
+};
+$("resetPassword").onclick=async()=>{
+  if(!client || !$("authEmail").reportValidity()) return;
+  const {error}=await client.auth.resetPasswordForEmail($("authEmail").value.trim(),{redirectTo:location.origin+location.pathname});
+  authStatus(error ? error.message : "If the address is registered, a password reset email will arrive. Open the link and return here.");
+};
+$("signOut").onclick=async()=>{
+  // Flush pending edits before signing out.
+  clearTimeout(timer);
+  if(activeUser){
+    const {error}=await client.from("challenge_progress").upsert({user_id:activeUser.id,state:S,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(error){setSync("Could not save before sign-out: "+error.message);return;}
+  }
+  const {error}=await client.auth.signOut();
+  if(error) setSync(error.message);
+};
+if(!client){
+  authStatus("Setup needed: enter your Supabase project URL and publishable/anon key in index.html, then redeploy.");
+  $("signIn").disabled=$("signUp").disabled=$("resetPassword").disabled=true;
+}else{
+  client.auth.onAuthStateChange((event,session)=>{
+    if(event==="SIGNED_OUT"){
+      generation++;clearTimeout(timer);activeUser=null;S=fresh();showAuth();authStatus("Signed out.");
+    }else if((event==="SIGNED_IN" || event==="INITIAL_SESSION") && session?.user && (!activeUser || activeUser.id!==session.user.id)){
+      // Defer database access outside the auth callback.
+      setTimeout(()=>loadAccount(session.user),0);
+    }else if(event==="INITIAL_SESSION" && !session){showAuth();authStatus("Sign in or create an account to begin.");}
+    else if(event==="PASSWORD_RECOVERY"){
+      const newPassword=prompt("Enter a new password (at least 6 characters):");
+      if(newPassword && newPassword.length>=6) client.auth.updateUser({password:newPassword}).then(({error})=>alert(error ? error.message : "Password updated."));
+    }
+  });
+}
 })();
 </script>
 
